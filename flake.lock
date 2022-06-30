@@ -68,13 +68,30 @@
         "type": "github"
       }
     },
+    "np-riscv": {
+      "locked": {
+        "lastModified": 1656494356,
+        "narHash": "sha256-EE5iIM8YvqwqBO52cuMhokuZDU/PZ39rZsifsD5O57M=",
+        "owner": "NickCao",
+        "repo": "nixpkgs",
+        "rev": "6e4ed9d51611801da896d1de5ba4e17b6b0e5e17",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NickCao",
+        "ref": "riscv",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "jh7100_ddrinit": "jh7100_ddrinit",
         "jh7100_recovery_binary": "jh7100_recovery_binary",
         "jh7100_secondBoot": "jh7100_secondBoot",
         "jh71xx-tools": "jh71xx-tools",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "np-riscv": "np-riscv"
       }
     }
   },

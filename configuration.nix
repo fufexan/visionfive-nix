@@ -1,23 +1,126 @@
-{
-
+{pkgs, inputs, lib, ...}: {
   boot.kernelParams = [
-    "console=tty0" "console=ttyS0,115200" "earlycon=sbi"
+    "console=tty0"
+    "console=ttyS0,115200"
+    "earlycon=sbi"
 
     # https://github.com/starfive-tech/linux/issues/14
     "stmmac.chain_mode=1"
   ];
-  boot.initrd.kernelModules = [ "dw-axi-dmac-platform" "dw_mmc-pltfm" "spi-dw-mmio" ];
+  boot.initrd.kernelModules = ["dw-axi-dmac-platform" "dw_mmc-pltfm" "spi-dw-mmio"];
 
   services = {
     openssh.enable = true;
   };
+
+  environment = {
+    etc = {
+      "nix/flake-channels/system".source = inputs.self;
+      "nix/flake-channels/nixpkgs".source = inputs.nixpkgs;
+      "nix/flake-channels/home-manager".source = inputs.hm;
+    };
+
+    shellAliases = {
+      "np-riscv#" = "np-riscv#legacyPackages.x86_64-linux.pkgsCross.riscv64-linux#";
+    };
+
+    systemPackages = with pkgs; [
+      file
+      git
+      helix
+      lm_sensors
+      neofetch
+      python3
+    ];
+
+    pathsToLink = ["/share/zsh"];
+  };
+
+  i18n = {
+    defaultLocale = "en_US.UTF-8";
+    # saves space
+    supportedLocales = ["en_US.UTF-8/UTF-8"];
+  };
+
+  networking.hostName = "visionfive";
+
+  nix = {
+    extraOptions = ''
+      builders-use-substitutes = true
+      experimental-features = nix-command flakes
+
+      # for direnv GC roots
+      keep-outputs = true
+      keep-derivations = true
+    '';
+
+    buildMachines = [
+      {
+        system = "aarch64-linux";
+        sshUser = "root";
+        sshKey = "/root/.ssh/arm-server.key";
+        maxJobs = 4;
+        hostName = "arm-server";
+        supportedFeatures = ["nixos-test" "benchmark" "kvm" "big-parallel"];
+      }
+      {
+        system = "x86_64-linux";
+        sshUser = "root";
+        sshKey = "/root/.ssh/id_ed25519";
+        maxJobs = 8;
+        hostName = "io";
+        supportedFeatures = ["nixos-test" "benchmark" "kvm" "big-parallel"];
+      }
+    ];
+    distributedBuilds = true;
+
+    gc = {
+      automatic = true;
+      dates = "weekly";
+      options = "--delete-older-than 7d";
+    };
+
+    registry = lib.mapAttrs (n: v: {flake = v;}) inputs;
+
+    nixPath = [
+      "nixpkgs=/etc/nix/flake-channels/nixpkgs"
+      "home-manager=/etc/nix/flake-channels/home-manager"
+    ];
+
+    settings = {
+      auto-optimise-store = true;
+      substituters = ["https://cache.nichi.co"];
+      trusted-public-keys = ["hydra.nichi.co-0:P3nkYHhmcLR3eNJgOAnHDjmQLkfqheGyhZ6GLrUVHwk="];
+    };
+  };
+
+  programs.zsh = {
+    enable = true;
+    autosuggestions.enable = true;
+    syntaxHighlighting.enable = true;
+  };
+
+  services = {
+    avahi = {
+      enable = true;
+      nssmdns = true;
+      publish = {
+        enable = true;
+        domain = true;
+        addresses = true;
+      };
+    };
+    tailscale.enable = true;
+  };
+
+  time.timeZone = "Europe/Bucharest";
+
   users = {
-    users.matthew = {
-      password = "piratesrus";
+    users.mihai = {
+      extraGroups = ["wheel"];
       isNormalUser = true;
-      openssh.authorizedKeys.keys = [
-        "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQClm+SMN9Bg1HZ+MjH1VQYEXAnslGWT9564pj/KGO79WMQLUxdp3WWa1hQadf2PleAIEFEul3knrpRSEK3yHcCk3g+sCh3XIJcFZLesswe0V+kCAw+JBSd18ESJ4Qko+iDK95cDzucLFwXB10FMVKQCrX90KR+Fp6s6eJHcZGmpxTPgNulDpAjM2APluM3xBCe6zZzt+iNIzn3J8PRKbpNNbuw/LMRU8+udrGbLavUMcSk7ER9pAyLGhz//9aHWDPu7ZRje+vTWgnGFpzbtEzdjnP+2v45nLKWG7o7WdTAsAR8WSccjtNoBiVgSmpHr07zJ0/gTeL4PUkk3lbtzF/PdtTQGm3Ng4SjOBlhRVaTuKBlF2X/Rwq+W4LCbHVgA79MyhJxL2TDbKBPUSLfckqxP89e8Q7iQ4XjIHqVb50ojNNLGcOQRrHq14Twwx/ZDDQvMXCsLwM6vyoYa8KdSaASEr1clx78qNp9PHGlr+UztW+EsoZI7j1tzcHMmq2BSK90= matthew@t480"
-      ];
+      password = "starfive";
+      shell = pkgs.zsh;
     };
   };
 }
